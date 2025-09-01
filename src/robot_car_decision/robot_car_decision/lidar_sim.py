@@ -1,36 +1,38 @@
 import rclpy
 from rclpy.node import Node
-from std_msgs.msg import String
+from std_msgs.msg import Float32 
 import random
 
 class LidarSim(Node):
     """
     Nodo de simulación de un LiDAR tipo TOF.
-    Publica en /lidar/status "ok" o "obstaculo"
-    según un umbral de distancia y un factor de ancho de carro.
+    Publica la distancia detectada en /lidar/front como un Float32.
     """
     def __init__(self):
         super().__init__('lidar_sim')
-        self.publisher = self.create_publisher(String, 'lidar/status', 10)
-        # Timer de publicación cada 1 segundo
-        self.timer = self.create_timer(1.0, self.publish_status)
-        self.car_width_cm = 25       # ancho del carro
-        self.distance_threshold_cm = 20  # distancia mínima para considerar obstáculo
+        self.publisher = self.create_publisher(Float32, 'lidar/front', 10)
+        # Timer de publicación cada 0.2 segundos
+        self.timer = self.create_timer(0.2, self.publish_distance)
+        self.car_width_m = 0.25 
+        self.distance_threshold_m = 0.28 
 
-    def publish_status(self):
-        msg = String()
+    def publish_distance(self):
+        msg = Float32()
 
-        # Simula distancia detectada (0-100 cm)
-        detected_distance = random.randint(5, 100)
+        # Simula una distancia detectada en metros (0.05 a 5.0 metros)
+        # Se usa un número aleatorio para simular lecturas
+        detected_distance = random.uniform(0.05, 5.0)
 
-        # Simula un obstáculo si la distancia es menor que el umbral + ancho del carro
-        if detected_distance < self.distance_threshold_cm + self.car_width_cm:
-            msg.data = "obstaculo"
-        else:
-            msg.data = "ok"
-
+        # Publica la distancia simulada
+        msg.data = detected_distance
         self.publisher.publish(msg)
-        self.get_logger().info(f"[LidarSim] Distancia: {detected_distance} cm → {msg.data}")
+
+        # Simula un escenario de obstáculo para el log
+        status = "ok"
+        if detected_distance <= self.distance_threshold_m + self.car_width_m:
+            status = "obstaculo"
+            
+        self.get_logger().info(f"[LidarSim] Distancia: {detected_distance:.3f} m → {status}")
 
 def main(args=None):
     rclpy.init(args=args)
